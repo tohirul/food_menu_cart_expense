@@ -16,6 +16,25 @@ window.onload = () => {
 	totals();
 };
 
+const setToLocalStorage = (/** @type {Array} */ item) =>
+	localStorage.setItem("cart", JSON.stringify(item));
+
+const getFromLocalStorage = () => JSON.parse(localStorage.getItem("cart"));
+
+// ? Rerender
+const reRender = () => {
+	// * Clearing Menu for rendering
+	cart = getFromLocalStorage();
+
+	menu.innerHTML = ``;
+	cartSummery.innerHTML = ``;
+
+	// * Rerendering
+	createMenu();
+	createCart();
+	totals();
+};
+
 // ? Creating Menu Items
 // ? Also Used to Rerender Menu
 const createMenu = () => {
@@ -28,33 +47,25 @@ const createMenu = () => {
 
 // ? Processes the Checking for item in local storage
 const checkCart = (/** @type {{ id: any; }} */ item) => {
-	const savedCart = JSON.parse(localStorage.getItem("cart"));
-	const cartItem = savedCart.find((orderedItem) => {
-		if (orderedItem.id === item.id) return true;
-		return false;
-	});
+	const savedCart = getFromLocalStorage();
+	const cartItem = savedCart.find(
+		(/** @type {{ id: any; }} */ orderedItem) => {
+			if (orderedItem.id === item.id) return true;
+			return false;
+		}
+	);
 	if (cartItem != undefined) return true;
 	else return false;
 };
 
 // ? Checks if Item Exists in Local Storage
-const getChecked = (item) => {
+const getChecked = (
+	/** @type {{ id: any; name?: string; price?: number; image?: string; alt?: string; count?: number; }} */ item
+) => {
 	if (localStorage.getItem("cart")) {
 		return checkCart(item);
 	}
 	return false;
-};
-
-// ? Rerender
-const reRender = () => {
-	// * Clearing Menu for rendering
-	menu.innerHTML = ``;
-	cartSummery.innerHTML = ``;
-
-	// * Rerendering
-	createMenu();
-	createCart();
-	totals();
 };
 
 // ? Function Used to Render Menu
@@ -68,7 +79,7 @@ const renderMenu = (
 	// * Button Click Event
 	button.onclick = () => {
 		if (button.innerText === "Add to Cart") {
-			item.count += 1;
+			item.count = 1;
 			setToCart(item);
 		}
 		reRender();
@@ -82,19 +93,19 @@ const defaultCartSummery = () => {
 // ? Create Cart
 const createCart = () => {
 	if (localStorage.getItem("cart")) {
-		const existingCart = JSON.parse(localStorage.getItem("cart"));
-		console.log(existingCart, existingCart.length);
-		if (existingCart.length > 0) {
-			cart = JSON.parse(localStorage.getItem("cart"));
-			cart.forEach((item) => {
+		const existingCart = getFromLocalStorage();
+		// console.log(existingCart, existingCart.length);
+		if (existingCart.length < 1) {
+			defaultCartSummery();
+			return;
+		} else if (existingCart.length >= 1) {
+			cart = getFromLocalStorage();
+			cart.forEach((/** @type {any} */ item) => {
 				renderCart(item);
 			});
-			return;
 		}
-		defaultCartSummery();
 		return;
 	}
-	defaultCartSummery();
 };
 
 // ? Update Item Count
@@ -111,15 +122,23 @@ const changeCount = (
 
 // ? Update Cart Items
 const cartItemUpdate = (/** @type {object} */ item) => {
-	let cartItems = JSON.parse(localStorage.getItem("cart"));
+	let cartItems = getFromLocalStorage();
 
-	const itemToUpdate = cartItems.find((cartItem) => cartItem.id === item.id);
+	const itemToUpdate = cartItems.find(
+		(/** @type {{ id: any; }} */ cartItem) => cartItem.id === item.id
+	);
 	const replaceIndex = cartItems.indexOf(itemToUpdate);
 
-	if (item.count > 0) cartItems[replaceIndex] = item;
-	else cartItems = cartItems.filter((cartItem) => cartItem.id !== item.id);
+	if (item.count >= 1) {
+		cartItems[replaceIndex] = item;
+	} else {
+		const filteredCartItems = cartItems.filter(
+			(/** @type {{ id: any; }} */ cartItem) => cartItem.id !== item.id
+		);
+		cartItems = filteredCartItems;
+	}
 
-	localStorage.setItem("cart", JSON.stringify(cartItems));
+	setToLocalStorage(cartItems);
 	return cartItems;
 };
 
@@ -133,17 +152,17 @@ const renderCart = (/** @type {object} */ item) => {
 	btnDecrease.onclick = () => {
 		// console.info("Clicked Decrease");
 		const updatedCount = changeCount(count, "decrease");
-		item.count = updatedCount;
+
 		// console.log("decrease", item);
-		cartItemUpdate(item);
+		cartItemUpdate({ ...item, count: updatedCount });
 		reRender();
 	};
 
 	btnIncrease.onclick = () => {
 		// console.info("Clicked Increase");
 		const updatedCount = changeCount(count, "increase");
-		item.count = updatedCount;
-		cartItemUpdate(item);
+
+		cartItemUpdate({ ...item, count: updatedCount });
 		reRender();
 	};
 };
@@ -151,13 +170,13 @@ const renderCart = (/** @type {object} */ item) => {
 // ? Set Cart to Local Storage
 const setToCart = (/** @type {any} */ item) => {
 	// * Cart Exists in Local Storage
-	if (localStorage.getItem("cart")) {
-		const cart = JSON.parse(localStorage.getItem("cart"));
+	if (JSON.parse(localStorage.getItem("cart")).length >= 1) {
+		cart = getFromLocalStorage();
 		cart.push(item);
-		localStorage.setItem("cart", JSON.stringify(cart));
+		setToLocalStorage(cart);
 	}
 	// * Cart Doesn't Exist in Local Storage
 	else {
-		localStorage.setItem("cart", JSON.stringify([item]));
+		setToLocalStorage([item]);
 	}
 };
